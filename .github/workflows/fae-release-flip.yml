@@ -1,0 +1,37 @@
+name: FAE release flip
+
+# One-time scheduled publish for the SmechOS Founder Anniversary Edition
+# draft release. Fires at 06:00 UTC (09:00 EEST) on Oct 6, 2026 -- the
+# draft + ISO asset are already uploaded ahead of time (smechos-1.0-rc3-fae)
+# so this job only has to flip visibility, which is fast and doesn't
+# depend on re-uploading a ~2GB asset at the deadline.
+#
+# Self-disables after a successful run (see the last step) so this
+# doesn't silently refire on Oct 6 of some future year -- cron day/month
+# fields alone can't express "just this once."
+on:
+  schedule:
+    - cron: '0 6 6 10 *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the FAE draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit smechos-1.0-rc3-fae \
+            --repo ${{ github.repository }} \
+            --draft=false
+
+      - name: Disable this workflow (one-time release, don't refire next year)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow disable "FAE release flip" --repo ${{ github.repository }}
